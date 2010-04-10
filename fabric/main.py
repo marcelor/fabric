@@ -13,8 +13,9 @@ from operator import add
 from optparse import OptionParser
 import os
 import sys
+import re
 
-from fabric import api # For checking callables against the API 
+from fabric import api # For checking callables against the API
 from fabric.contrib import console, files, project # Ditto
 from fabric.network import denormalize, interpret_host_string, disconnect_all
 from fabric import state # For easily-mockable access to roles, env and etc
@@ -164,12 +165,20 @@ def parse_options():
         help="show program's version number and exit"
     )
 
-    # List Fab commands found in loaded fabfiles/source files
+     # List Fab commands found in loaded fabfiles/source files
     parser.add_option('-l', '--list',
         action='store_true',
         dest='list_commands',
         default=False,
         help="print list of possible commands and exit"
+    )
+
+    # List Fab commands found in loaded fabfiles/source files
+    parser.add_option('-L',
+        #action='store_true',
+        dest='filtered_list_commands',
+        metavar='PATTERN',
+        help="print list of filtered commands and exit"
     )
 
     # Display info about a specific command
@@ -194,16 +203,27 @@ def parse_options():
     return parser, opts, args
 
 
-def list_commands():
+def list_commands(pattern=None):
     """
     Print all found commands/tasks, then exit. Invoked with -l/--list.
+    Receives an optional regexp pattern to be used to filter the commands.
     """
     print("Available commands:\n")
+    if pattern:
+        # If a pattern was given we filter the commands using it
+        # Check if pattern is a valid regexp
+        try:
+            regexp = re.compile(pattern)
+        except:
+            abort("%s is not a valid regular expression." % pattern)
+        matching_keys = [ k for k in commands.keys() if regexp.match(k) ]
+    else:
+        matching_keys = commands.keys()
     # Want separator between name, description to be straight col
-    max_len = reduce(lambda a, b: max(a, len(b)), commands.keys(), 0)
+    max_len = reduce(lambda a, b: max(a, len(b)), matching_keys, 0)
     sep = '  '
     trail = '...'
-    names = sorted(commands.keys())
+    names = sorted(matching_keys)
     for name in names:
         output = None
         # Print first line of docstring
@@ -406,6 +426,10 @@ def main():
         # Handle list-commands option (now that commands are loaded)
         if options.list_commands:
             list_commands()
+
+        # Handle filtered list-commands option (now that commands are loaded)
+        if options.filtered_list_commands:
+            list_commands(options.filtered_list_commands)
 
         # Handle show (command-specific help) option
         if options.display:
