@@ -173,9 +173,8 @@ def parse_options():
         help="print list of possible commands and exit"
     )
 
-    # List Fab commands found in loaded fabfiles/source files
+    # Filter Fab commands found in loaded fabfiles/source files
     parser.add_option('-L',
-        #action='store_true',
         dest='filtered_list_commands',
         metavar='PATTERN',
         help="print list of filtered commands and exit"
